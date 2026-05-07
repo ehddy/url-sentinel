@@ -1,0 +1,11 @@
+services:
+  url-agent:
+    build: .
+    env_file:
+      - .env
+    environment:
+      - CRAWL4AI_HEADLESS=true
+    # 단일 URL 분석 예시:
+    #   docker compose run --rm url-agent python main.py https://example.com
+    # 피싱 분석 예시:
+    #   docker compose run --rm url-agent python main_phishing.py https://example.com

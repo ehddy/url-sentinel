@@ -1,0 +1,47 @@
+# 환경 변수 (민감 정보)
+.env
+
+# ICMS 내부 시스템 연동 파일 (회사 내부용, git 제외)
+run_icms.py
+agent/icms.py
+agent/icms_config.py
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# 가상환경
+venv/
+env/
+.venv/
+
+# 빌드 / 배포
+*.egg-info/
+dist/
+build/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 로그
+*.log
+
+# 분석 결과 (로컬 전용)
+results/
+
+# crawl4ai 캐시
+.crawl4ai/
+
+# 기타 임시 파일
+str
