@@ -5,6 +5,8 @@ services:
       - .env
     environment:
       - CRAWL4AI_HEADLESS=true
+    volumes:
+      - ./results:/app/results
     # 단일 URL 분석 예시:
     #   docker compose run --rm url-agent python main.py https://example.com
     # 피싱 분석 예시:

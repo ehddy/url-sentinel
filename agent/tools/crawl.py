@@ -70,20 +70,60 @@ def _summarize_links(links: dict) -> str:
 
 
 async def _async_crawl(url: str) -> dict:
-    """Crawl4AI 비동기 크롤링"""
+    """Crawl4AI 비동기 크롤링 (안티봇 우회 옵션 포함)"""
     browser_config = BrowserConfig(
         headless=CRAWL4AI_HEADLESS,
         verbose=False,
+
+        # ── 안티봇 우회 옵션 ──────────────
+        # 실제 브라우저처럼 보이도록 설정
+        user_agent=(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/131.0.0.0 Safari/537.36"
+        ),
+        # 실제 모니터 해상도와 유사한 뷰포트
+        viewport_width=1920,
+        viewport_height=1080,
+        # JavaScript 활성화 (안티봇 체크에 필수)
+        java_script_enabled=True,
+        # navigator.webdriver = false 로 위장
+        ignore_https_errors=True,
+        # 추가 Chromium 플래그 (봇 감지 우회)
+        extra_args=[
+            "--disable-blink-features=AutomationControlled",
+            "--disable-features=IsolateOrigins,site-per-process",
+            "--no-sandbox",
+        ],
     )
+
     run_config = CrawlerRunConfig(
         cache_mode=CacheMode.BYPASS,
         word_count_threshold=5,
+        # 페이지 로딩 대기 전략
         wait_until="domcontentloaded",
+        # JS 렌더링 + 안티봇 챌린지 통과 대기
         delay_before_return_html=3.0,
+        # 쿠키 동의 배너, 팝업 오버레이 자동 제거
+        remove_overlay_elements=True,
+        # 페이지 전체 타임아웃 (안티봇 챌린지가 느린 경우 대비)
+        page_timeout=30000,
+        # Cloudflare 등의 JS 챌린지를 기다리기 위한 추가 JS 실행
+        js_code="""
+            // 쿠키 동의 버튼 자동 클릭 시도
+            const cookieButtons = document.querySelectorAll(
+                'button[class*="accept"], button[class*="agree"], button[class*="consent"], ' +
+                'a[class*="accept"], a[class*="agree"], [id*="cookie"] button'
+            );
+            cookieButtons.forEach(btn => btn.click());
+        """,
     )
 
-    async with AsyncWebCrawler(config=browser_config) as crawler:
-        result = await crawler.arun(url=url, config=run_config)
+    try:
+        async with AsyncWebCrawler(config=browser_config) as crawler:
+            result = await crawler.arun(url=url, config=run_config)
+    except Exception as e:
+        return {"success": False, "error": f"브라우저 오류: {str(e)[:80]}"}
 
     if not result.success:
         return {"success": False, "error": result.error_message or "크롤링 실패"}

@@ -32,19 +32,46 @@ VISION_SYSTEM_PROMPT = """\
 
 
 async def _async_capture(url: str) -> dict:
-    """Crawl4AI로 스크린샷 캡처"""
+    """Crawl4AI로 스크린샷 캡처 (안티봇 우회 옵션 포함)"""
     browser_config = BrowserConfig(
         headless=CRAWL4AI_HEADLESS,
         verbose=False,
+        user_agent=(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/131.0.0.0 Safari/537.36"
+        ),
+        viewport_width=1920,
+        viewport_height=1080,
+        java_script_enabled=True,
+        ignore_https_errors=True,
+        extra_args=[
+            "--disable-blink-features=AutomationControlled",
+            "--disable-features=IsolateOrigins,site-per-process",
+            "--no-sandbox",
+        ],
     )
     run_config = CrawlerRunConfig(
         cache_mode=CacheMode.BYPASS,
-        screenshot=True,              # ★ 스크린샷 활성화
-        wait_until="networkidle",     # 페이지 로딩 완료 대기
+        screenshot=True,
+        wait_until="networkidle",
+        delay_before_return_html=3.0,
+        remove_overlay_elements=True,
+        page_timeout=30000,
+        js_code="""
+            const cookieButtons = document.querySelectorAll(
+                'button[class*="accept"], button[class*="agree"], button[class*="consent"], '
+                + 'a[class*="accept"], a[class*="agree"], [id*="cookie"] button'
+            );
+            cookieButtons.forEach(btn => btn.click());
+        """,
     )
 
-    async with AsyncWebCrawler(config=browser_config) as crawler:
-        result = await crawler.arun(url=url, config=run_config)
+    try:
+        async with AsyncWebCrawler(config=browser_config) as crawler:
+            result = await crawler.arun(url=url, config=run_config)
+    except Exception as e:
+        return {"success": False, "error": f"브라우저 오류: {str(e)[:80]}"}
 
     if not result.success:
         return {"success": False, "error": result.error_message or "캡처 실패"}
@@ -54,9 +81,8 @@ async def _async_capture(url: str) -> dict:
 
     return {
         "success": True,
-        "screenshot_b64": result.screenshot,  # base64 PNG 문자열
+        "screenshot_b64": result.screenshot,
     }
-
 
 def _analyze_with_vision(screenshot_b64: str) -> str:
     """멀티모달 Claude로 스크린샷 분석"""
