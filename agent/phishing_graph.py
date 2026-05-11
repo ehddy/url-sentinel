@@ -17,6 +17,8 @@ from agent.tools.whois_lookup import whois_lookup
 from agent.tools.google_search import google_search
 from agent.tools.screenshot import capture_and_analyze
 from agent.tools.phishing_verdict import phishing_verdict
+from agent.tools.virustotal import virustotal_check
+
 
 phishing_tools = [
     dns_check,
@@ -25,6 +27,7 @@ phishing_tools = [
     google_search,
     capture_and_analyze,
     phishing_verdict,
+    virustotal_check,
 ]
 
 

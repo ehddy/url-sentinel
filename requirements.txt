@@ -16,3 +16,4 @@ tldextract
 furl
 ollama
 python-whois
+vt-py

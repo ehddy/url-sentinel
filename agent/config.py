@@ -19,3 +19,7 @@ CRAWL4AI_HEADLESS = os.getenv("CRAWL4AI_HEADLESS", "false").lower() == "true"
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 GOOGLE_CX = os.getenv("GOOGLE_CX", "")
 GOOGLE_SEARCH_DAYS = int(os.getenv("GOOGLE_SEARCH_DAYS", "30"))
+
+
+# VirusTotal
+VT_API_KEY = os.getenv("VT_API_KEY", "")
