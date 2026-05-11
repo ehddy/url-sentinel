@@ -16,4 +16,4 @@ tldextract==5.3.1
 furl==2.1.4
 ollama==0.6.2
 python-whois==0.9.6
-vt-py
+vt-py==0.22.0
