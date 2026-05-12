@@ -33,11 +33,14 @@ def save_result(agent_type: str, result: dict) -> str:
 
     payload = {
         "agent_type": agent_type,
+        "model_id": result.get("model_id"),
         "analyzed_at": datetime.now(timezone.utc).isoformat(),
         "url": url,
         "category": result.get("category"),
         "confidence": result.get("confidence"),
         "evidence_summary": result.get("evidence_summary"),
+        "token_usage": result.get("token_usage"),
+        "processing_time_seconds": result.get("processing_time_seconds"),
     }
 
     with open(filepath, "w", encoding="utf-8") as f:

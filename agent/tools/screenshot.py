@@ -53,18 +53,12 @@ async def _async_capture(url: str) -> dict:
     )
     run_config = CrawlerRunConfig(
         cache_mode=CacheMode.BYPASS,
+        word_count_threshold=0,
         screenshot=True,
-        wait_until="networkidle",
+        wait_until="load",                  # networkidle 대신 load (리다이렉트 전에 캡처)
         delay_before_return_html=3.0,
-        remove_overlay_elements=True,
         page_timeout=30000,
-        js_code="""
-            const cookieButtons = document.querySelectorAll(
-                'button[class*="accept"], button[class*="agree"], button[class*="consent"], '
-                + 'a[class*="accept"], a[class*="agree"], [id*="cookie"] button'
-            );
-            cookieButtons.forEach(btn => btn.click());
-        """,
+        # remove_overlay_elements, js_code 제거 — 페이지가 사라지면 크래시 원인
     )
 
     try:
@@ -73,10 +67,16 @@ async def _async_capture(url: str) -> dict:
     except Exception as e:
         return {"success": False, "error": f"브라우저 오류: {str(e)[:80]}"}
 
-    if not result.success:
+    # ── success=False여도 스크린샷이 있으면 사용 ──
+    has_screenshot = bool(result.screenshot)
+
+    if not result.success and not has_screenshot:
         return {"success": False, "error": result.error_message or "캡처 실패"}
 
-    if not result.screenshot:
+    if not result.success and has_screenshot:
+        print(f"⚠️ [SCREENSHOT] Crawl4AI 검증 실패했으나 스크린샷 존재 → 계속 진행")
+
+    if not has_screenshot:
         return {"success": False, "error": "스크린샷이 생성되지 않았습니다"}
 
     return {

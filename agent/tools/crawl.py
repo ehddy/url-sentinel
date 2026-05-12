@@ -74,22 +74,15 @@ async def _async_crawl(url: str) -> dict:
     browser_config = BrowserConfig(
         headless=CRAWL4AI_HEADLESS,
         verbose=False,
-
-        # ── 안티봇 우회 옵션 ──────────────
-        # 실제 브라우저처럼 보이도록 설정
         user_agent=(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
             "Chrome/131.0.0.0 Safari/537.36"
         ),
-        # 실제 모니터 해상도와 유사한 뷰포트
         viewport_width=1920,
         viewport_height=1080,
-        # JavaScript 활성화 (안티봇 체크에 필수)
         java_script_enabled=True,
-        # navigator.webdriver = false 로 위장
         ignore_https_errors=True,
-        # 추가 Chromium 플래그 (봇 감지 우회)
         extra_args=[
             "--disable-blink-features=AutomationControlled",
             "--disable-features=IsolateOrigins,site-per-process",
@@ -99,21 +92,15 @@ async def _async_crawl(url: str) -> dict:
 
     run_config = CrawlerRunConfig(
         cache_mode=CacheMode.BYPASS,
-        word_count_threshold=5,
-        # 페이지 로딩 대기 전략
+        word_count_threshold=0,
         wait_until="domcontentloaded",
-        # JS 렌더링 + 안티봇 챌린지 통과 대기
-        delay_before_return_html=3.0,
-        # 쿠키 동의 배너, 팝업 오버레이 자동 제거
+        delay_before_return_html=5.0,
         remove_overlay_elements=True,
-        # 페이지 전체 타임아웃 (안티봇 챌린지가 느린 경우 대비)
         page_timeout=30000,
-        # Cloudflare 등의 JS 챌린지를 기다리기 위한 추가 JS 실행
         js_code="""
-            // 쿠키 동의 버튼 자동 클릭 시도
             const cookieButtons = document.querySelectorAll(
-                'button[class*="accept"], button[class*="agree"], button[class*="consent"], ' +
-                'a[class*="accept"], a[class*="agree"], [id*="cookie"] button'
+                'button[class*="accept"], button[class*="agree"], button[class*="consent"], '
+                + 'a[class*="accept"], a[class*="agree"], [id*="cookie"] button'
             );
             cookieButtons.forEach(btn => btn.click());
         """,
@@ -125,8 +112,16 @@ async def _async_crawl(url: str) -> dict:
     except Exception as e:
         return {"success": False, "error": f"브라우저 오류: {str(e)[:80]}"}
 
-    if not result.success:
+    # ── 핵심 변경: success=False여도 HTML이 있으면 사용 ──
+    has_html = bool(result.html and len(result.html) > 100)
+
+    if not result.success and not has_html:
+        # HTML도 없으면 진짜 실패
         return {"success": False, "error": result.error_message or "크롤링 실패"}
+
+    if not result.success and has_html:
+        # HTML은 있지만 Crawl4AI가 오판한 경우
+        print(f"⚠️ [CRAWL] Crawl4AI 검증 실패했으나 HTML 존재 ({len(result.html)} bytes) → 계속 진행")
 
     # markdown 타입 분기 처리
     md = result.markdown
@@ -136,6 +131,16 @@ async def _async_crawl(url: str) -> dict:
         markdown_text = md
     else:
         markdown_text = ""
+
+    # markdown이 비어있으면 HTML에서 직접 텍스트 추출 시도
+    if not markdown_text and has_html:
+        import re
+        # script, style 태그 제거 후 텍스트만 추출
+        text = re.sub(r'<script[^>]*>.*?</script>', '', result.html, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r'<[^>]+>', ' ', text)
+        text = re.sub(r'\s+', ' ', text).strip()
+        markdown_text = text if text else "(페이지에 텍스트 콘텐츠 없음 — JS 리다이렉트 또는 빈 페이지)"
 
     return {
         "success": True,

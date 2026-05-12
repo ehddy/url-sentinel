@@ -56,11 +56,11 @@ PHISHING_SYSTEM_PROMPT = """\
 1. **dns_check** — 죽은 사이트는 바로 safe 처리
 2. **crawl_page** — 페이지 콘텐츠에서 피싱 징후 확인
 3. **whois_lookup** — 도메인 등록일 확인 (피싱의 핵심 지표)
-4. 판단이 애매하면 보조 도구 활용:
-   - **virustotal_check** — 보안 벤더 다수가 악성으로 탐지했는지 확인. 외부 검증의 가장 강력한 근거.
-   - **google_search** — 도메인이 피싱으로 신고되었는지 검색
-5. 여전히 불확실하면 **capture_and_analyze**로 시각적 근거 추가
-6. 충분한 근거가 모이면 **phishing_verdict**로 최종 판별
+4. 위 3개로 판단이 **확실하면 바로 phishing_verdict를 호출**하세요.
+5. 판단이 **애매할 때만** 보조 도구를 선택적으로 사용:
+   - **google_search** — 도메인이 피싱으로 신고되었는지 검색 (가벼움)
+   - **capture_and_analyze** — 시각적으로 브랜드 사칭 여부 확인
+   - **virustotal_check** — 여러 보안 업체의 탐지 결과로 교차 검증 (느리지만 강력한 지표)
 
 ### WHOIS가 중요한 이유
 피싱 사이트는 수명이 짧습니다. 대부분 며칠~몇 주 안에 차단되므로, 최근 등록된 도메인일수록 피싱 가능성이 높습니다.
@@ -72,6 +72,7 @@ PHISHING_SYSTEM_PROMPT = """\
 - 민감 정보 입력 폼(비밀번호, 카드번호 등) + 비공식 도메인
 - 도메인 등록 수일~수주 이내 + 로그인/정보입력 폼
 - 유명 브랜드의 로고/UI를 사용하지만 도메인이 다른 경우
+- Google 검색 결과나 VirusTotal에서 피싱/악성으로 다수 탐지
 
 ### 보조 지표 (다른 지표와 함께 고려)
 - 긴급성/공포를 유발하는 문구
@@ -88,8 +89,8 @@ PHISHING_SYSTEM_PROMPT = """\
 - 로그인 폼이 있더라도 공식 도메인인 경우
 
 ## 중요 규칙
-
 1. 근거가 충분하면 **반드시 phishing_verdict를 호출**하세요.
+2. dns_check에서 사이트가 죽었다면 바로 phishing_verdict(category="safe")로 종료하세요.
 2. confidence는 솔직하게: 확실하면 0.9 이상, 애매하면 0.5~0.7.
 3. evidence_summary는 한국어로 핵심만 간결하게.
 4. **make_verdict가 아닌 phishing_verdict**를 사용하세요.
